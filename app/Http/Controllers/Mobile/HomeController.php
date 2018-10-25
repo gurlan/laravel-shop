@@ -30,11 +30,15 @@ class HomeController extends Controller
      */
     public function getIndex()
     {
+
         try {
             $pos_id = 'home';
             $title = '首页';
-            $wechat_js = app('wechat.official_account')->jssdk;
-            return view(cache('config')['theme'].'.index',compact('pos_id','title','wechat_js'));
+        //    $wechat_js = app('wechat.official_account')->jssdk;
+
+
+            return view(cache('config')['theme'].'.index',compact('pos_id','title'));
+
         } catch (\Throwable $e) {
             dd($e);
             return view('errors.404');
