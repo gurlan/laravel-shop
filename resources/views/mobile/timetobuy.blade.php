@@ -1,0 +1,217 @@
+@extends('mobile.layout')
+
+@section('content')
+  <!-- 产品相册 -->
+  <section class="sec_album clearfix overh">
+      <div class="touchslider touchslider-shop pr">
+        <div class="touchslider-viewport pr">
+          <div style="width: 10000px;">
+          @foreach(explode(',',$good->album) as $ga)
+          <div class="touchslider-item"><img src="{{ $ga }}" width="750" height="635" alt="{{ $good->title }}"></div>
+          @endforeach
+          </div>
+        </div>
+        <div class="touchslider-nav ps">
+          @foreach(explode(',',$good->album) as $ga)
+          <a class="touchslider-nav-item @if($loop->first) touchslider-nav-item-current @endif"></a>
+          @endforeach
+        </div>
+      </div>
+    <script>
+      $(function(){
+        $(".touchslider-shop").touchSlider({mouseTouch: true,autoplay:true,delay:3500});
+      })
+    </script>
+  </section>
+
+  <!-- 抢购 -->
+  <div class="tuaninfo clearfix overh bgc_f">
+    <div class="ti_left f-l overh">
+      <em class="font_lg">抢购</em>
+      <i>库存：{{ $timetobuy->good_num }}</i>
+    </div>
+    <div class="ti_right overh f-l">
+      <div class="ti_r_t overh bgc_m">
+        {{ $timetobuy->starttime }} 至 {{ $timetobuy->endtime }}
+      </div>
+      <div class="ti_r_b overh bgc_sr">
+        <del>原价：￥<i class="old_shop_price">{{ $good->shop_price }}</i></del> 抢购价：<span class="font_md">￥{{ $timetobuy->price }}</span>
+      </div>
+    </div>
+  </div>
+  <!-- 产品信息 -->
+  <section class="goodinfo clearfix mt20 bgc_f pd20">
+    <h1 class="good_title"><i class="label label-red">每人限购 {{ $timetobuy->buy_max }} 件</i> {{ $good->title }}</h1>
+    <p class="ti_title color_9">{{ $good->describe }}</p>
+  </section>
+  <!-- 规格 -->
+  <section class="good_spec mt20 clearfix bgc_f pd20">
+    <h4 class="t4_show color_9">已选</h4>
+    <div class="g_s_info pos_show">
+      <span class="g_s_name"></span><span><i class="g_s_num">1</i>件</span>
+    </div>
+  </section>
+  <!-- ad -->
+  <div class="ads mt20">
+    @foreach(app('tag')->ad(4,1,1) as $k => $c)
+      <a href="{{ $c->url }}"><img src="{{ $c->thumb }}" width="570" height="180" alt="{{ $c->title }}"></a>
+    @endforeach
+  </div>
+  <!-- 店 -->
+  <section class="sec_dian bgc_f clearfix mt20 overh pd20">
+    <a href="{{ url('/') }}" class="s_d_logo f-l"><img src="{{ $sites['static']}}mobile/images/logo_s.png" width="180" height="60" alt=""></a>
+    <div class="s_d_info">
+      <h2><a href="{{ url('/') }}">ThinkPad京东官方旗舰店</a></h2>
+      <p><a href="{{ url('/') }}">最好的手机电脑官方商城</a></p>
+    </div>
+  </section>
+  <!-- 详情 -->
+  <section class="clearfix overh sec_show pd20 bgc_f">
+    {!! $good->content !!}
+  </section>
+
+  <!-- 规格选项 -->
+  <div class="pos_bg hidden"></div>
+  <div class="pos_alert_con hidden">
+    <i class="pos_close iconfont icon-close"></i>
+    <div class="clearfix g_s_select">
+      <!-- 规格开始 -->
+      @if(count($filter_spec) > 0)
+      <div class="g_i_r_spec mt20">
+      @foreach($filter_spec as $ks => $gs)
+        <dl class="g_spec clearfix">
+          <dt>{{ $ks }}</dt>
+          <dd>
+            @foreach($gs as $kks => $ggs)
+            <a href="javascript:;" onclick="select_filter(this)" @if($kks == 0) class="active"@endif data-item_id="{{ $ggs['item_id'] }}"><input type="radio" name="goods_spec[{{$ks}}]" class="hidden"@if($kks == 0) checked="checked"@endif value="{{ $ggs['item_id'] }}">{{ $ggs['item'] }}</a>
+            @endforeach
+          </dd>
+        </dl>
+      @endforeach
+      </div>
+      <script>
+        $(function(){
+          get_goods_price();
+        })
+        /**
+         * 切换规格
+         */
+        function select_filter(obj)
+        {
+            $(obj).addClass('active').siblings('a').removeClass('active');
+            $(obj).children('input').prop('checked','checked');
+            $(obj).siblings('a').children('input').attr('checked',false);// 让隐藏的 单选按钮选中
+            // 更新商品价格
+            get_goods_price();
+        }
+        function get_goods_price()
+        {
+            var price = '{{$good->shop_price}}'; // 商品起始价
+            var store = '{{$good->store}}'; // 商品起始库存
+            var spec_goods_price = {!! $good_spec_price !!};  // 规格 对应 价格 库存表 //alert(spec_goods_price['28_100']['price']);
+            // 如果有属性选择项
+            if(spec_goods_price != null && spec_goods_price !='')
+            {
+                goods_spec_arr = new Array();
+                $('input[name^="goods_spec"]:checked').each(function(){
+                    goods_spec_arr.push($(this).val());
+                });
+                var spec_key = '_' + goods_spec_arr.sort(sortNumber).join('_') + '_';  //排序后组合成 key
+                // console.log(spec_key);
+                $('.spec_key').val(spec_key);
+                price = spec_goods_price[spec_key]['price']; // 找到对应规格的价格
+                store = spec_goods_price[spec_key]['store']; // 找到对应规格的库存
+            }
+            $('.store').html(store);    //对应规格库存显示出来
+            $('.old_shop_price').html(price); // 变动价格显示
+            $('.old_price').val(price); // 提交时价格
+            $('.g_s_name').text(spec_goods_price[spec_key]['item_name']);
+        }
+        /***用作 sort 排序用*/
+        function sortNumber(a,b)
+        {
+            return a - b;
+        }
+        </script>
+      @endif
+      <!-- 规格结束 -->
+    </div>
+    <div class="g_nums clearfix">
+      <i class="f-l">数量</i>
+      <span class="g_num_con">
+        <span class="num_dec">-</span>
+        <span class="num_num">1</span>
+        <span class="num_inc">+</span>
+      </span>
+    </div>
+    <div class="btn-submit mt20">确定</div>
+  </div>
+  <!-- 购物车要提交的表单内容 -->
+  <div class="submit_con hidden">
+    <form action="javascript:;" class="form_data">
+      <!-- ID -->
+      <input type="text" name="good_id" class="good_id" value="{{ $good->id }}">
+      <!-- 规格 -->
+      <input type="text" name="spec_key" class="spec_key" value="">
+      <!-- 数量 -->
+      <input type="text" name="nums" class="nums" value="1">
+      <!-- 价格 -->
+      <input type="text" name="gp" class="price" value="{{ $timetobuy->price }}">
+      <input type="text" name="old_price" class="old_price" value="{{ $good->shop_price }}">
+    </form>
+    <!-- 购物车、直接买 -->
+    <script>
+      $(function(){
+        $(".btn-addcart ,.pos_show").click(function(){
+          $(".pos_bg,.pos_alert_con").fadeIn();
+        });
+        // 直接购买
+        $('.btn-submit').on('click',function(event) {
+          if(!ajaxLock)return false;
+          var sid = "{{ session()->getId() }}";
+          var gid = $('.good_id').val();
+          var num = $('.nums').val();
+          var spec_key = $('.spec_key').val();
+          var gp = $('.price').val();
+          var url = "{{ url('api/timetobuy/createorder') }}";
+          ajaxLock = 0;
+          $.post(url,{gid:gid,spec_key:spec_key,num:num,gp:gp,sid:sid,uid:uid},function(d){
+            var ss = jQuery.parseJSON(d);
+            if (ss.code == '1') {
+              // 成功以后跳转到购物车页面上
+              $('.alert_msg').text('抢购成功~').slideToggle().delay(1500).slideToggle();
+              $(".pos_bg,.pos_alert_con").fadeOut();
+              // 下订单完成，跳转到支付上
+              setTimeout(function(){
+                window.location.href = "{{ url('editorder') }}" + '/' + ss.msg;
+              },2000);
+            }
+            else
+            {
+              $('.alert_msg').text(ss.msg).slideToggle().delay(1500).slideToggle();
+              // alert(ss.msg);
+              if (ss.code == '2') {
+                setTimeout(function(){
+                  window.location.href = "{{ url('user/login') }}";
+                },2000);
+              }
+            }
+            ajaxLock = 1;
+            return;
+          }).error(function() {
+            ajaxLock = 1;
+            return;
+          });
+        });
+
+      })
+    </script>
+  </div>
+  <div class="pos_foot">
+    <a href="{{ url('/') }}" class="p_f_link iconfont icon-home"><em>首页</em></a>
+    <a href="{{ url('cart') }}" class="p_f_link iconfont icon-cart"><em>购物车</em></a>
+    <span class="btn-addcart btn-createorder-lg">立即抢购</span>
+  </div>
+  <!-- 分享 -->
+  @include('mobile.common.share')
+@endsection
